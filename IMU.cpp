@@ -11,11 +11,12 @@
 
 //Define Variables we'll be connecting to
 double Setpoint,Input, Output;                //Alternative PID
+int oldLidarAlt = 0;
 
 
 //Specify the links and initial tuning parameters
 
-PID myPID(&Input, &Output, &Setpoint, (double) conf.pid[PIDALT].P8, (double) conf.pid[PIDALT].I8, (double) conf.pid[PIDALT].D8, DIRECT);                //Alternative PID
+PID myPID(&Input, &Output, &Setpoint, (float) conf.pid[PIDALT].P8/10, (float) conf.pid[PIDALT].I8/100, (float) conf.pid[PIDALT].D8/10, DIRECT);                //Alternative PID
 
 
 
@@ -412,8 +413,8 @@ uint8_t getEstimatedAltitude(){
 	}
  
         else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
-                alt.EstAlt = lidarAlt;
-                //alt.EstAlt = runningAverage(lidarAlt);
+                //alt.EstAlt = lidarAlt;
+                alt.EstAlt = runningAverage(lidarAlt);
                 //alt.EstAlt = (alt.EstAlt * 6 + lidarAlt) >> 3; //LPF to reduce noise
         }
                
@@ -457,9 +458,18 @@ uint8_t getEstimatedAltitude(){
 
         if (f.SONAR_MODE || f.LIDAR_MODE) 
         {
-          //Be careful this controller does not allow to change height once engaged. To change target
-          //altitude you have to disable the mode, enter the new altitude and engage again
-          //ToDo: Allow altitude change as in the classic baro mode
+          //LidarLite sometimes returns quite strange readings
+          //Thus we check if we increase or decrease more than 4m
+          //between two readings. Such readings will not be used and
+          //we stick to the last reading
+         
+          if (abs(lidarAlt - oldLidarAlt) > 400) {
+            lidarAlt = oldLidarAlt;
+          }
+          else {
+              oldLidarAlt = lidarAlt;
+          }
+          
           Input = (double) alt.EstAlt;  //Alternative PID
 //          double gap = abs(Setpoint-Input); //distance away from setpoint
 //          if(gap<10)
@@ -477,7 +487,7 @@ uint8_t getEstimatedAltitude(){
           
         //Alternative PID for Alt Hold
           BaroPID = (int) Output; 
-          debug[1] = BaroPID;
+          //debug[1] = BaroPID;
         }
         else {
 	    //P
@@ -522,20 +532,22 @@ void initSonarPID(){
   //Alternative PID
   Input = (double) alt.EstAlt;
   Setpoint = 0;
-  myPID.SetTunings(((double) conf.pid[PIDALT].P8)/10, (double) conf.pid[PIDALT].I8/100, (double) conf.pid[PIDALT].D8/10);
+  //myPID.SetTunings(((double) conf.pid[PIDALT].P8)/10, (double) conf.pid[PIDALT].I8/100, (double) conf.pid[PIDALT].D8/10);
   myPID.SetOutputLimits(-250, 500);   
 }
 
 void setSonarHold(int alt){
+  oldLidarAlt = lidarAlt;
   BaroPID = 0;
-  myPID.SetTunings(((double) conf.pid[PIDALT].P8)/10, (double) conf.pid[PIDALT].I8/100, (double) conf.pid[PIDALT].D8/10);
-  myPID.SetMode(AUTOMATIC);
+  myPID.SetTunings(((float) conf.pid[PIDALT].P8)/10, (float) conf.pid[PIDALT].I8/100, (float) conf.pid[PIDALT].D8/10);
   Setpoint = (double) alt;
+  myPID.SetMode(AUTOMATIC);
   debug[0] = Setpoint;
-  debug[1] = myPID.GetKp();
+  debug[1] = random(100);
 }
 
 void stopSonarPID() {
     Setpoint = 0;
+    BaroPID = 0;
     myPID.SetMode(MANUAL);
 }
