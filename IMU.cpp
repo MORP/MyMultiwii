@@ -412,8 +412,8 @@ uint8_t getEstimatedAltitude(){
 	}
  
         else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
-                //alt.EstAlt = lidarAlt;
-                alt.EstAlt = runningAverage(lidarAlt);
+                alt.EstAlt = lidarAlt;
+                //alt.EstAlt = runningAverage(lidarAlt);
                 //alt.EstAlt = (alt.EstAlt * 6 + lidarAlt) >> 3; //LPF to reduce noise
         }
                
@@ -477,6 +477,7 @@ uint8_t getEstimatedAltitude(){
           
         //Alternative PID for Alt Hold
           BaroPID = (int) Output; 
+          debug[1] = BaroPID;
         }
         else {
 	    //P

@@ -1128,7 +1128,7 @@ void loop () {
 	  if (rcOptions[BOXSONAR]) {
 		  if (f.SONAR_MODE == 0) {
 			  f.SONAR_MODE = 1;
-			  AltHold = alt.EstAlt;
+			  AltHold = sonarAlt;
                           //initSonarPID();
                           setSonarHold(AltHold);
 
@@ -1153,7 +1153,7 @@ void loop () {
 	  if (rcOptions[BOXLIDAR]) {
 		  if (f.LIDAR_MODE == 0) {
 			  f.LIDAR_MODE = 1;
-			  AltHold = alt.EstAlt;
+			  AltHold = lidarAlt;
                           //initSonarPID();
                           setSonarHold(AltHold);
 
@@ -1363,7 +1363,7 @@ void loop () {
 		break;
       case 3:
         taskOrder++;
-        #if BARO || SONAR || LIDAR
+        #if (BARO || SONAR || LIDAR)
           if (getEstimatedAltitude() != 0) break; // 280 us
         #endif    
       case 4:
