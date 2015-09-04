@@ -487,7 +487,6 @@ uint8_t getEstimatedAltitude(){
           
         //Alternative PID for Alt Hold
           BaroPID = (int) Output; 
-          //debug[1] = BaroPID;
         }
         else {
 	    //P
