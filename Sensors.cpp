@@ -1678,15 +1678,26 @@ void Lidar_init() {
    #endif
 }
 
+
 void Lidar_update() {
 
   #if !defined(CONTINUOUS_LIDAR)
-    LIDAR_GEP_TriggerPin_PIN_HIGH; //was low
-    delayMicroseconds(2);
+    static uint32_t t;
+
+    if ( currentTime < t ) return; //each read is spaced by 500ms
+    t = currentTime + 500000;
+      
+    //LIDAR_GEP_TriggerPin_PIN_HIGH; //was low
+    //delayMicroseconds(2);
     LIDAR_GEP_TriggerPin_PIN_LOW; //was high
     delayMicroseconds(10);
     LIDAR_GEP_TriggerPin_PIN_HIGH; //was low
    #endif
+   
+   
+   //ToDo: Check if the Lidar returns distance readings in inches or in centimeter when used in PWM mode.
+   //      Since Multiwii uses cm we have to do some math if inches are returned.
+   //tempLidarAlt = tempLidarAlt*2.54;
    
    lidarAlt = 1 + tempLidarAlt - LIDAR_OFFSET;
    

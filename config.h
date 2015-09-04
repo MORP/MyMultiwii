@@ -197,7 +197,7 @@
       //#define i2cLidar  //this section might take the code by guru_florida, once it works
       //#define externLidar //Uncomment if you use a separate controller (via i2c) for getting lidar values
       #define genericLidar //Uncomment if Lidar range valueas are taken by PWM measuremets
-      #define CONTINUOUS_LIDAR //Comment if you do NOT want continuous measurement
+      //#define CONTINUOUS_LIDAR //Comment if you do NOT want continuous measurement
 
       //#define LIDAR_TILT_CORRECTION 
       #define LIDAR_OFFSET 30
