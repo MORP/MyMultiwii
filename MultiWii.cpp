@@ -1468,12 +1468,12 @@ void loop () {
         AltHold += AltHoldCorr/512;
         AltHoldCorr %= 512;
       }
-      isAltHoldChanged = 1;
-    } else if (isAltHoldChanged) {
-      AltHold = alt.EstAlt;
       if (f.SONAR_MODE || f. LIDAR_MODE) {
          setSonarHold(AltHold);
       }
+      isAltHoldChanged = 1;
+    } else if (isAltHoldChanged) {
+      AltHold = alt.EstAlt;
       isAltHoldChanged = 0;
     }
     rcCommand[THROTTLE] = initialThrottleHold + BaroPID;

@@ -413,8 +413,9 @@ uint8_t getEstimatedAltitude(){
 	}
  
         else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
+                alt.EstAlt = smooth(lidarAlt, .7, alt.EstAlt); 
                 //alt.EstAlt = lidarAlt;
-                alt.EstAlt = runningAverage(lidarAlt);
+                //alt.EstAlt = runningAverage(lidarAlt);
                 //alt.EstAlt = (alt.EstAlt * 6 + lidarAlt) >> 3; //LPF to reduce noise
         }
                
@@ -487,6 +488,8 @@ uint8_t getEstimatedAltitude(){
           
         //Alternative PID for Alt Hold
           BaroPID = (int) Output; 
+          debug[1] = BaroPID;
+          
         }
         else {
 	    //P
@@ -532,21 +535,26 @@ void initSonarPID(){
   Input = (double) alt.EstAlt;
   Setpoint = 0;
   //myPID.SetTunings(((double) conf.pid[PIDALT].P8)/10, (double) conf.pid[PIDALT].I8/100, (double) conf.pid[PIDALT].D8/10);
-  myPID.SetOutputLimits(-250, 500);   
+  myPID.SetOutputLimits(-250, 500);  
+  myPID.SetMode(AUTOMATIC);
 }
 
 void setSonarHold(int alt){
   oldLidarAlt = lidarAlt;
   BaroPID = 0;
+  
   myPID.SetTunings(((float) conf.pid[PIDALT].P8)/10, (float) conf.pid[PIDALT].I8/100, (float) conf.pid[PIDALT].D8/10);
+  //myPID.SetOutputLimits(-250, 500);
   Setpoint = (double) alt;
-  myPID.SetMode(AUTOMATIC);
-  debug[0] = Setpoint;
-  debug[1] = random(100);
+  
+  //myPID.SetMode(AUTOMATIC);
+  //debug[0] = Setpoint;
+  //debug[1] = (int) alt.EstAlt;
+  //debug[1] = random(100);
 }
 
 void stopSonarPID() {
+    //myPID.SetMode(MANUAL);
     Setpoint = 0;
     BaroPID = 0;
-    myPID.SetMode(MANUAL);
 }
