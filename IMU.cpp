@@ -402,8 +402,6 @@ uint8_t getEstimatedAltitude(){
        
         else if (f.BARO_MODE && !f.SONAR_MODE && !f.LIDAR_MODE){
                  alt.EstAlt = (alt.EstAlt * 6 + 2* BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
-                //debug[2] = runningAverage(BaroAlt);
-                //debug[3] = smooth(BaroAlt, .7, debug[2]); 
         }
         
         else if (f.SONAR_MODE && !f.BARO_MODE && !f.LIDAR_MODE) {
@@ -413,14 +411,14 @@ uint8_t getEstimatedAltitude(){
 	}
  
         else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
-                alt.EstAlt = smooth(lidarAlt, .7, alt.EstAlt); 
+                alt.EstAlt = smooth(lidarAlt, .5, alt.EstAlt); 
                 //alt.EstAlt = lidarAlt;
                 //alt.EstAlt = runningAverage(lidarAlt);
                 //alt.EstAlt = (alt.EstAlt * 6 + lidarAlt) >> 3; //LPF to reduce noise
         }
                
 //        else if  ((f.SONAR_MODE || f.LIDAR_MODE) && f.BARO_MODE) {
-//            //AB hier anpassen
+//            //ToDo
 //                
 //
 //          	if (sonarAlt < SONAR_BARO_FUSION_LC) {
@@ -439,8 +437,6 @@ uint8_t getEstimatedAltitude(){
 //	        }
 //                else {
 //                alt.EstAlt = (alt.EstAlt * 6 + BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
-//                //debug[2] = runningAverage(BaroAlt);
-//                //debug[3] = smooth(BaroAlt, .7, debug[2]); 
 //        	}
 //        }
 
@@ -451,20 +447,18 @@ uint8_t getEstimatedAltitude(){
 	//alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC); // SONAR
 #endif
 
-	//debug[0] = sonarAlt; // raw sonar altitude
-	//debug[1] = BaroAlt; // barometer altitude
-	//debug[2] = alt.EstAlt;
+
 
 #if (defined(VARIOMETER) && (VARIOMETER != 2)) || !defined(SUPPRESS_BARO_ALTHOLD)
 
         if (f.SONAR_MODE || f.LIDAR_MODE) 
         {
           //LidarLite sometimes returns quite strange readings
-          //Thus we check if we increase or decrease more than 4m
+          //Thus we check if we increase or decrease more than 1m
           //between two readings. Such readings will not be used and
           //we stick to the last reading
          
-          if (abs(lidarAlt - oldLidarAlt) > 400) {
+          if (abs(lidarAlt - oldLidarAlt) > 100) {
             lidarAlt = oldLidarAlt;
           }
           else {
@@ -482,14 +476,11 @@ uint8_t getEstimatedAltitude(){
 //             //we're far from setpoint, use aggressive tuning parameters
 //             myPID.SetTunings(aggKp, aggKi, aggKd);
 //            }
-          
-          
+         
           myPID.Compute(); //Alternative PID
           
         //Alternative PID for Alt Hold
-          BaroPID = (int) Output; 
-          debug[1] = BaroPID;
-          
+          BaroPID = (int) Output;          
         }
         else {
 	    //P
@@ -548,13 +539,10 @@ void setSonarHold(int alt){
   Setpoint = (double) alt;
   
   //myPID.SetMode(AUTOMATIC);
-  //debug[0] = Setpoint;
-  //debug[1] = (int) alt.EstAlt;
-  //debug[1] = random(100);
 }
 
 void stopSonarPID() {
     //myPID.SetMode(MANUAL);
-    Setpoint = 0;
+    //Setpoint = 0;
     BaroPID = 0;
 }

@@ -105,6 +105,7 @@ void	Optflow_update() {
 		// Use sensor	only inside	DEADBAND
 		if(abs(rcCommand[ROLL])	< OF_DEADBAND && abs(rcCommand[PITCH]) < OF_DEADBAND)	{
 			// calculate velocity
+
 			optflow_get_vel();
 
 			for(axis=0; axis<2; axis++) {
