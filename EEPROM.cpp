@@ -170,7 +170,7 @@ void LoadDefaults() {
     conf.pid[PIDMAG].P8   = 40;
 
     //conf.pid[PIDVEL].P8 = 0;      conf.pid[PIDVEL].I8 = 0;    conf.pid[PIDVEL].D8 = 0;
-    conf.pid[PIDVEL].P8 = 30;      conf.pid[PIDVEL].I8 = 10;    conf.pid[PIDVEL].D8 = 0;  //for optflow max P=5, I = 0,020, D is unused
+    conf.pid[PIDVEL].P8 = 23;      conf.pid[PIDVEL].I8 = 20;    conf.pid[PIDVEL].D8 = 0;  //for optflow max P=5, I = 0,020, D is unused
 
     conf.rcRate8 = 90; conf.rcExpo8 = 65;
     conf.rollPitchRate = 0;

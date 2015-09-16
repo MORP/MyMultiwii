@@ -1666,4 +1666,10 @@ void loop () {
   if ( (f.ARMED) || ((!calibratingG) && (!calibratingA)) ) writeServos();
   #endif 
   writeMotors();
+
+
+
+
+
+
 }

@@ -198,14 +198,15 @@
       //#define externLidar //Uncomment if you use a separate controller (via i2c) for getting lidar values
       #define genericLidar //Uncomment if Lidar range valueas are taken by PWM measuremets
       #define CONTINUOUS_LIDAR //Comment if you do NOT want continuous measurement
-
+      #define LIDAR_LPF_FACTOR 0.9f             // do not oversmooth in order to avoid a bumpy althold; 0.5 = a new value makes 50% of the smoothed value
       //#define LIDAR_TILT_CORRECTION 
       #define LIDAR_OFFSET 30
+      //#define ALTHOLDTEST
 
       #define LIDAR_GENERIC_TRIGGER_PIN 12      // motor 12
       #define LIDAR_GENERIC_ECHO_PIN 11         // motor 11
-      #define LIDAR_GENERIC_SCALE 10            //scale for ranging conversion (LidarLite is 10)
-      #define LIDAR_GENERIC_MAX_RANGE 4000         //cm (The datasheet says max rang is 40m)
+      #define LIDAR_GENERIC_SCALE 10            // scale for ranging conversion (LidarLite is 10)
+      #define LIDAR_GENERIC_MAX_RANGE 4000      // cm (The datasheet says max rang is 40m)
 
       
       /* Sonar */ // for visualization purpose currently - no control code behind

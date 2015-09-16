@@ -16,7 +16,7 @@ int oldLidarAlt = 0;
 
 //Specify the links and initial tuning parameters
 
-PID myPID(&Input, &Output, &Setpoint, (float) conf.pid[PIDALT].P8/10, (float) conf.pid[PIDALT].I8/100, (float) conf.pid[PIDALT].D8/10, DIRECT);                //Alternative PID
+PID myPID(&Input, &Output, &Setpoint, (float) conf.pid[PIDALT].P8/10, (float) conf.pid[PIDALT].I8/1000, (float) conf.pid[PIDALT].D8/10, DIRECT);                //Alternative PID
 
 
 
@@ -387,7 +387,7 @@ uint8_t getEstimatedAltitude(){
 #elif SONAR && !BARO && !LIDAR
 	alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC);
 #elif LIDAR && !BARO && !SONAR
-        alt.EstAlt = (lidarAlt * 6 + 2 * lidarAlt) >> 3;
+        alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);
 #elif LIDAR && SONAR && !BARO
         alt.EstAlt = lidarAlt;
 #elif (SONAR || LIDAR) && BARO
@@ -411,7 +411,7 @@ uint8_t getEstimatedAltitude(){
 	}
  
         else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
-                alt.EstAlt = smooth(lidarAlt, .5, alt.EstAlt); 
+                alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);  //was .5 but resulted in slow alt change detection
                 //alt.EstAlt = lidarAlt;
                 //alt.EstAlt = runningAverage(lidarAlt);
                 //alt.EstAlt = (alt.EstAlt * 6 + lidarAlt) >> 3; //LPF to reduce noise
@@ -454,11 +454,11 @@ uint8_t getEstimatedAltitude(){
         if (f.SONAR_MODE || f.LIDAR_MODE) 
         {
           //LidarLite sometimes returns quite strange readings
-          //Thus we check if we increase or decrease more than 1m
+          //Thus we check if we increase or decrease more than 2m
           //between two readings. Such readings will not be used and
           //we stick to the last reading
          
-          if (abs(lidarAlt - oldLidarAlt) > 400) {
+          if ((abs(lidarAlt - oldLidarAlt) > 200) && oldLidarAlt != 0) {
             lidarAlt = oldLidarAlt;
           }
           else {
@@ -529,8 +529,8 @@ void initSonarPID(){
   //Alternative PID
   Input = (double) alt.EstAlt;
   Setpoint = 0;
-  myPID.SetTunings(((float) conf.pid[PIDALT].P8)/10, (float) conf.pid[PIDALT].I8/100, (float) conf.pid[PIDALT].D8/10);
-  myPID.SetOutputLimits(-250, 500);  
+  myPID.SetTunings(((float) conf.pid[PIDALT].P8), (float) conf.pid[PIDALT].I8, (float) conf.pid[PIDALT].D8); // was 10, 100 , 10
+  myPID.SetOutputLimits(-200, 200);  
   myPID.SetMode(AUTOMATIC);
 }
 
@@ -538,9 +538,20 @@ void setSonarHold(int alt){
   oldLidarAlt = lidarAlt;
   BaroPID = 0;
   
-  myPID.SetTunings(((float) conf.pid[PIDALT].P8)/10, (float) conf.pid[PIDALT].I8/100, (float) conf.pid[PIDALT].D8/10);
-  myPID.SetOutputLimits(-250, 500);
-  Setpoint = (double) alt;
+  myPID.SetTunings(((float) conf.pid[PIDALT].P8)/10, (float) conf.pid[PIDALT].I8/1000, (float) conf.pid[PIDALT].D8/20); // was 10, 100 , 10
+//myPID.SetTunings(((float) conf.pid[PIDALT].P8), (float) conf.pid[PIDALT].I8, (float) conf.pid[PIDALT].D8); // was 10, 100 , 10
+
+//  myPID.SetOutputLimits(-250, 500);
+  myPID.SetOutputLimits(-200, 200); //Multiwii uses a range of -150,150
+  
+  #if defined(ALTHOLDTEST)
+   Setpoint = 100;
+   oldLidarAlt = lidarAlt;
+  #else
+   Setpoint = (double) alt;  //+10; to make sure we have a positive baroPID first
+   oldLidarAlt = alt;
+  #endif
+
   //debug[1] = Setpoint;
   //myPID.SetMode(AUTOMATIC);
 }
@@ -550,5 +561,6 @@ void stopSonarPID() {
   
     //myPID.SetMode(MANUAL);
     Setpoint = 0;
+    oldLidarAlt = 0;
     BaroPID = 0;
 }
