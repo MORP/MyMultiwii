@@ -27,6 +27,8 @@
 #define CONFIGURATION_BITS                              0x0a
 #define MOTION_CLEAR_REG                                0x12
 #define TSRAD_TIME 50 // try to set 75 if not working
+#define OPTFLOW_PVAL 32
+#define OPTFLOW_IVAL 20
 
 //#if	!defined(digitalWriteFast)
 //	#include "digitalWriteFast.h"
