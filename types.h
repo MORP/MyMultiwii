@@ -157,9 +157,7 @@ typedef struct {
 #endif
   uint8_t LIDAR_MODE : 1;
   uint8_t SONAR_MODE : 1;
-#if OPTFLOW
   uint8_t OPTFLOW_MODE : 1;
-#endif
 } flags_struct_t;
 
 typedef struct {
