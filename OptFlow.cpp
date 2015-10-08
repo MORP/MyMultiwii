@@ -239,6 +239,13 @@ void	optflow_get()	{
 	pinMode(OF_MISO, INPUT);
 	pinMode(OF_SCLK, OUTPUT);
 	pinMode(OF_NCS, OUTPUT);
+
+        //Since EZ-GUI does not really support to set VEL PID's here is a fallback
+        //This is not the preferred solution but a necessary workaround 
+        if (conf.pid[PIDVEL].P8 == 0)
+          conf.pid[PIDVEL].P8 = 22;
+        if (conf.pid[PIDVEL].D8 == 0)
+          conf.pid[PIDVEL].D8 = 20;
     
         
 	// reset device

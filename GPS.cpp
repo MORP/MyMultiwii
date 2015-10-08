@@ -259,6 +259,8 @@ uint8_t GPS_Compute(void) {
         if (!f.LAND_IN_PROGRESS) {
           alt_to_hold = get_new_altitude();
           AltHold = alt_to_hold;
+//          if (f.SONAR || f.LIDAR)
+//            setSonarHold(AltHold);
         }
       }
 

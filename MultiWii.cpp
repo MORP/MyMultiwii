@@ -1461,25 +1461,23 @@ void loop () {
     }
     #endif
     //IF Throttle not ignored then allow change altitude with the stick....
-    if ( (abs(rcCommand[THROTTLE]-initialThrottleHold)>ALT_HOLD_THROTTLE_NEUTRAL_ZONE) && !f.THROTTLE_IGNORED) {
-      // Slowly increase/decrease AltHold proportional to stick movement ( +100 throttle gives ~ +50 cm in 1 second with cycle time about 3-4ms)
-      AltHoldCorr+= rcCommand[THROTTLE] - initialThrottleHold;
-      if(abs(AltHoldCorr) > 512) { //was 512 gives 20cm in 1sec
-        AltHold += AltHoldCorr/512; //was 512
-        AltHoldCorr %= 512; //was 512
-      }
-      if (f.SONAR_MODE || f. LIDAR_MODE) {
-         setSonarHold(AltHold);
-      }
+    AltHoldCorr+= rcCommand[THROTTLE] - initialThrottleHold;        
+
+    if ( (abs(rcCommand[THROTTLE]-initialThrottleHold)>ALT_HOLD_THROTTLE_NEUTRAL_ZONE) && !f.THROTTLE_IGNORED) {  //invalidate to turn off experimentally
+
+        // Slowly increase/decrease AltHold proportional to stick movement ( +100 throttle gives ~ +20 cm in 1 second with cycle time about 3-4ms)
+        if(abs(AltHoldCorr) > 512) { 
+          AltHold += AltHoldCorr/512; 
+          AltHoldCorr %= 512; 
+        }
+      
       isAltHoldChanged = 1;
     } else if (isAltHoldChanged) {
       AltHold = alt.EstAlt;
-//      if (f.SONAR_MODE || f. LIDAR_MODE) {
-//         setSonarHold(AltHold);
-//      }
+    
       isAltHoldChanged = 0;
     }
-    rcCommand[THROTTLE] = initialThrottleHold + BaroPID;
+      rcCommand[THROTTLE] = initialThrottleHold + BaroPID;
   }
   #endif //BARO
 

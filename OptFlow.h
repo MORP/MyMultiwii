@@ -1,4 +1,4 @@
-#ifdef OPTFLOW
+//#ifdef OPTFLOW
 
 /* Optical Flow mode flag */
 static int8_t optflowMode = 0;
@@ -23,4 +23,4 @@ void rotate16(int16_t *V, int16_t delta);
 
 
 
-#endif
+//endif
