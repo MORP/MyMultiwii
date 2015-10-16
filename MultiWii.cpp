@@ -789,9 +789,6 @@ void setup() {
     debugmsg_append_str("initialization completed\n");
   #endif
   
-  initSonarPID(); //CB
-
-
 }
 
 void go_arm() {
@@ -1346,26 +1343,28 @@ void loop () {
         #if MAG
           if (Mag_getADC() != 0) break; // 320 µs
         #endif
+        break;
       case 1:
         taskOrder++;
         #if BARO
           if (Baro_update() != 0) break; // for MS baro: I2C set and get: 220 us  -  presure and temperature computation 160 us
         #endif
+        break;
 	  case 2:
-	    taskOrder++;
-		#if SONAR
-		  Sonar_update(); //debug[2] = sonarAlt;
-	        #endif
-                #if LIDAR
-                  Lidar_update();
-                  //debug[2] = lidarAlt;
-                #endif
-		break;
-      case 3:
+  	    taskOrder++;
+	  	  #if SONAR
+		      Sonar_update(); //debug[2] = sonarAlt;
+	      #endif
+        #if LIDAR
+          Lidar_update(); //debug[2] = lidarAlt;
+        #endif
+  	  	break;
+    case 3:
         taskOrder++;
         #if (BARO || SONAR || LIDAR)
           if (getEstimatedAltitude() != 0) break; // 280 us
-        #endif    
+        #endif
+        break;    
       case 4:
         taskOrder++;
         #if GPS
@@ -1374,9 +1373,10 @@ void loop () {
           if (GPS_NewData() != 0) break;  // 160 us with no new data / much more with new data 
           #endif
         #endif
+        break;
       case 5:
         taskOrder=0;
-	#ifdef OPTFLOW
+      	#ifdef OPTFLOW
           Optflow_update();  
         #endif       
         #ifdef LANDING_LIGHTS_DDR
