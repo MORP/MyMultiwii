@@ -92,6 +92,9 @@ enum box {
   #if LIDAR
         BOXLIDAR,
   #endif
+  #if defined(GPS) && defined(BARO) && defined(MAG) 
+    BOXCIRCLE,
+  #endif
   CHECKBOXITEMS
 };
 
@@ -158,6 +161,7 @@ typedef struct {
   uint8_t LIDAR_MODE : 1;
   uint8_t SONAR_MODE : 1;
   uint8_t OPTFLOW_MODE : 1;
+  uint8_t CIRCLE_MODE : 1;
 } flags_struct_t;
 
 typedef struct {

@@ -10,7 +10,7 @@
 
 //Specify the links and initial tuning parameters for Alternative PID 
 float errSum, lastErr, Output;
-int oldLidarAlt = 0;
+int tempAlt = 0;
 unsigned long lastTime = 0;
 
 
@@ -324,8 +324,6 @@ long runningAverage(int M)
 }
 
 int smooth(int data, float filterVal, float smoothedVal){
-
-
   if (filterVal > 1){      // check to make sure param's are within range
     filterVal = .99;
   }
@@ -347,7 +345,8 @@ uint8_t getEstimatedAltitude(){
 	static uint16_t previousT;
 	uint16_t currentT = micros();
 	uint16_t dTime;
-        uint8_t aggressiveness = 1;
+  uint8_t aggressiveness = 1;
+  uint8_t readingError = 0;
 
 	dTime = currentT - previousT;
 	if (dTime < UPDATE_INTERVAL) return 0;
@@ -362,7 +361,7 @@ uint8_t getEstimatedAltitude(){
 	// baroGroundPressureSum is not supposed to be 0 here
 	// see: https://code.google.com/p/ardupilot-mega/source/browse/libraries/AP_Baro/AP_Baro.cpp
 	BaroAlt = (logBaroGroundPressureSum - log(baroPressureSum)) * baroGroundTemperatureScale;
-        BaroAlt = runningAverage(BaroAlt); //additional filter by C.B.
+  BaroAlt = runningAverage(BaroAlt); //additional filter by C.B.
         
         
 	//alt.EstAlt = (alt.EstAlt * 6 + BaroAlt ) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
@@ -373,7 +372,7 @@ uint8_t getEstimatedAltitude(){
 	    //alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC); // additional LPF to reduce baro noise (faster by 30 µs)
             BaroHome = (alt.EstAlt * 6 + BaroAlt * 2) >> 3; // play with optimal coef. here
 	  }
-          calibratingS--;
+    calibratingS--;
 	}
 #endif
 
@@ -387,11 +386,6 @@ uint8_t getEstimatedAltitude(){
 #elif LIDAR && SONAR && !BARO
         alt.EstAlt = lidarAlt;
 #elif (SONAR || LIDAR) && BARO
-	// limit sonar altitude
-	/*if (sonarAlt > SONAR_MAX_HOLD) {
-	sonarAlt = SONAR_MAX_HOLD;
-	}*/  
-
         if (!f.BARO_MODE && !f.SONAR_MODE && !f.LIDAR_MODE) {
                  alt.EstAlt = (alt.EstAlt * 6 + 2* BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
         }
@@ -401,27 +395,34 @@ uint8_t getEstimatedAltitude(){
         }
         
         else if (f.SONAR_MODE && !f.BARO_MODE && !f.LIDAR_MODE) {
-		//alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + (BaroHome + sonarAlt) * (1 - SONAR_BARO_LPF_LC); // additional LPF to reduce baro noise (faster by 30 µs)
                 alt.EstAlt = sonarAlt;
                 //alt.EstAlt = (alt.EstAlt * 6 + sonarAlt * 2) >> 3;
-	}
- 
+      	}
         else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
                 alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);  
                 //alt.EstAlt = lidarAlt;
-                //alt.EstAlt = runningAverage(lidarAlt);
-                //alt.EstAlt = (alt.EstAlt * 6 + lidarAlt) >> 3; //LPF to reduce noise
         }
         else if (f.LIDAR_MODE && f.SONAR_MODE && !f.BARO_MODE){
           //use sonar values to check lidar or baro readings for correctness
-          //makes these lines (s.a) unnecessary
-          //#elif LIDAR && SONAR && !BARO
-          //alt.EstAlt = lidarAlt;
+          readingError = abs(lidarAlt-sonarAlt);
+          if ((readingError > 5) && (sonarAlt <= SONAR_MAX_HOLD)) //if there is a difference and we are below sonar max range
+          {
+            alt.EstAlt = min(sonarAlt,lidarAlt); //just for safety we are using the lower reading
+          }
+          else
+          {
+            //Both readings are in the same range. Thus, we depend on the Lidar since it
+            //the Lidar has a higher range (~40m)
+            alt.EstAlt = lidarAlt;
+          }
         }
-               
-//        else if  ((f.SONAR_MODE || f.LIDAR_MODE) && f.BARO_MODE) {
-//            //ToDo
-//                
+        else if  ((f.SONAR_MODE || f.LIDAR_MODE) && f.BARO_MODE) {
+            //This mode will allow for holding absolute altitude and verifies readings by using
+            //either Sonar or Lidar.
+            //Alternatively we can do a sensor fusion. However, this would mean that we mix
+            //relative and absolute altitude hold.
+        }   
+
 //
 //          	if (sonarAlt < SONAR_BARO_FUSION_LC) {
 //  		  alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + (BaroHome + sonarAlt) * (1 - SONAR_BARO_LPF_LC); // additional LPF to reduce baro noise (faster by 30 µs)
@@ -442,123 +443,99 @@ uint8_t getEstimatedAltitude(){
 //        	}
 //        }
 
-
-
-
-
 	//alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC); // SONAR
 #endif
-
-
 
 #if (defined(VARIOMETER) && (VARIOMETER != 2)) || !defined(SUPPRESS_BARO_ALTHOLD)
 
         if (f.SONAR_MODE || f.LIDAR_MODE) 
         {
-          //LidarLite sometimes returns quite strange readings
-          //Thus we check if we increase or decrease more than 2m
-          //between two readings. Such readings will not be used and
-          //we stick to the last reading
-          
           // Time difference to last call
           unsigned long now = millis();
           unsigned long timeChange = (now - lastTime);
-
-          //Filter out strange Lidar readings. If there is a gap of
+  
+          //Filter out strange  readings. If there is a gap of
           //2m between two readings (~160ms) there was a problem. 
-          if ((abs(alt.EstAlt - oldLidarAlt) > 200) && oldLidarAlt != 0) {
-            alt.EstAlt = oldLidarAlt;
+          if ((abs(alt.EstAlt - tempAlt) > 200) && (tempAlt != 0) && (timeChange < 2000)) {
+            alt.EstAlt = tempAlt;
           }
           else {
-              oldLidarAlt = alt.EstAlt;
+            tempAlt = alt.EstAlt;
+            //Use adaptive tunings. If we are more than 2m away from our target we will use more aggressive PIDs
+            if  (abs(AltHold - alt.EstAlt) > 200) {
+                aggressiveness = 2; 
+            }
+            else {
+                aggressiveness = 1;
+            }
           }
                     
-          //Use adaptive tunings. If we are more than 2m away
-          //from our target we will use more aggressive PIDs
-          if  (abs(AltHold - alt.EstAlt) > 200) {
-            aggressiveness = 1; //4;
-          }
-          else {
-            aggressiveness = 1;
-          }
-
           //Compute all the working error variables
           int16_t error16 = constrain(AltHold - alt.EstAlt, -300, 300);
+          applyDeadband(error16, 10); //remove small P parameter to reduce noise near zero position
 
           //Compute PID Output
           float dErr = (error16 - lastErr) / timeChange; 
-          errSum += (error16 * timeChange);
-           
-          float pValue = (conf.pid[PIDALT].P8 * error16  * aggressiveness);
-          float iValue = (conf.pid[PIDALT].I8 * errSum   * aggressiveness);
-          float dValue = (conf.pid[PIDALT].D8 * dErr     * aggressiveness);
             
-          Output =  (pValue / 10 )+ (iValue / 1000)  + dValue;  //The test quad is ligth and powerful. Thus we divide P by 4 (better 10) to reduce the strength of reactions
-          Output = constrain(Output, -300, 300); //to avoid reactions that are too strong
+          errSum += (error16 * timeChange);
+          errSum = constrain(errSum, -1000000, 1000000); 
 
+             
+          float pValue = (conf.pid[PIDALT].P8 * error16  * aggressiveness);
+          float iValue = conf.pid[PIDALT].I8 * errSum;
+          float dValue = conf.pid[PIDALT].D8 * dErr;
+              
+          Output =  (pValue / 10 )+ (iValue / 100000)  + dValue;  //The test quad is ligth and powerful. Thus we divide P by 4 (better 10) to reduce the strength of reactions
+          Output = constrain(Output, -150, 150); //to avoid reactions that are too strong
+  
           //Remember some variables for the next loop
-          lastErr = error16;
+          lastErr = error16; //pValue;
           lastTime = now;           
           //Hand over new value
-          BaroPID = Output;    
-          
-          
+          BaroPID = (int) Output;    
+                      
           debug[0] = BaroPID; 
           debug[1] = timeChange;//alt.EstAlt;
           debug[2] = AltHold;//lidarAlt;
+          
         }
         else {
-	    //P
-	    int16_t error16 = constrain(AltHold - alt.EstAlt, -300, 300);
-	    applyDeadband(error16, 10); //remove small P parametr to reduce noise near zero position
-	    BaroPID = constrain((conf.pid[PIDALT].P8 * error16 >> 7), -150, +150);
+	          //P
+	          int16_t error16 = constrain(AltHold - alt.EstAlt, -300, 300);
+      	    applyDeadband(error16, 10); //remove small P parametr to reduce noise near zero position
+      	    BaroPID = constrain((conf.pid[PIDALT].P8 * error16 >> 7), -150, +150);
             //I
-	    errorAltitudeI += conf.pid[PIDALT].I8 * error16 >> 6;
-	    errorAltitudeI = constrain(errorAltitudeI, -30000, 30000);
-	    BaroPID += errorAltitudeI >> 9; //I in range +/-60
-
-	    applyDeadband(accZ, ACC_Z_DEADBAND);
-
-	    static int32_t lastBaroAlt;
-	    // could only overflow with a difference of 320m, which is highly improbable here
-	    int16_t baroVel = mul((alt.EstAlt - lastBaroAlt), (1000000 / UPDATE_INTERVAL));
-
-	    lastBaroAlt = alt.EstAlt;
-
-	    baroVel = constrain(baroVel, -300, 300); // constrain baro velocity +/- 300cm/s
-	    applyDeadband(baroVel, 10); // to reduce noise near zero
-
-	    // Integrator - velocity, cm/sec
-	    vel += accZ * ACC_VelScale * dTime;
-
-	    // apply Complimentary Filter to keep the calculated velocity based on baro velocity (i.e. near real velocity). 
-	    // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
-	    vel = vel * 0.985f + baroVel * 0.015f;
-
-	    //D
-	    alt.vario = vel;
-	    applyDeadband(alt.vario, 5);	
+      	    errorAltitudeI += conf.pid[PIDALT].I8 * error16 >> 6;
+      	    errorAltitudeI = constrain(errorAltitudeI, -30000, 30000);
+      	    BaroPID += errorAltitudeI >> 9; //I in range +/-60
+      
+      	    applyDeadband(accZ, ACC_Z_DEADBAND);
+      
+      	    static int32_t lastBaroAlt;
+      	    // could only overflow with a difference of 320m, which is highly improbable here
+      	    int16_t baroVel = mul((alt.EstAlt - lastBaroAlt), (1000000 / UPDATE_INTERVAL));
+      
+      	    lastBaroAlt = alt.EstAlt;
+      
+      	    baroVel = constrain(baroVel, -300, 300); // constrain baro velocity +/- 300cm/s
+      	    applyDeadband(baroVel, 10); // to reduce noise near zero
+      
+      	    // Integrator - velocity, cm/sec
+      	    vel += accZ * ACC_VelScale * dTime;
+      
+      	    // apply Complimentary Filter to keep the calculated velocity based on baro velocity (i.e. near real velocity). 
+      	    // By using CF it's possible to correct the drift of integrated accZ (velocity) without loosing the phase, i.e without delay
+      	    vel = vel * 0.985f + baroVel * 0.015f;
+      
+      	    //D
+      	    alt.vario = vel;
+      	    applyDeadband(alt.vario, 5);	
         }
-
-
 #endif
 	return 1;
 }
 #endif //BARO
 
-void initSonarPID(){
-  //Alternative PID
-  //Input = (double) alt.EstAlt;
-//  Setpoint = 0;
-      #if defined(PIDTEST)
-     lastErr = 0;
-     lastTime = 0;
-    #endif
-    
-//  myPID.SetTunings(((float) conf.pid[PIDALT].P8), (float) conf.pid[PIDALT].I8, (float) conf.pid[PIDALT].D8); // was 10, 100 , 10
-//  myPID.SetOutputLimits(-250, 500);  
-//  myPID.SetMode(AUTOMATIC);
-}
 
 void setSonarHold(int alt){
   
@@ -570,23 +547,8 @@ void setSonarHold(int alt){
      lastTime = 0;
     #endif
     
-  oldLidarAlt = lidarAlt;
+  tempAlt = alt;
   BaroPID = 0;
-  
-//  myPID.SetTunings(((float) conf.pid[PIDALT].P8)/10, (float) conf.pid[PIDALT].I8/1000, (float) conf.pid[PIDALT].D8/20); // was 10, 100 , 10
-//  myPID.SetOutputLimits(-250, 500);
-//  myPID.SetOutputLimits(-200, 350); //Multiwii uses a range of -150,150
-  
-  #if defined(ALTHOLDTEST)
-   AltHold = 100;
-   oldLidarAlt = lidarAlt;
-  #else
-   //Setpoint = (double) alt; 
-   oldLidarAlt = alt;
-  #endif
-
-  //debug[1] = Setpoint;
-  //myPID.SetMode(AUTOMATIC);
 }
 
 void stopSonarPID() {
@@ -597,7 +559,7 @@ void stopSonarPID() {
     #endif
     //myPID.SetMode(MANUAL);
     AltHold = 0;
-    oldLidarAlt = 0;
+    tempAlt = 0;
     BaroPID = 0;
     lastErr = 0;
     lastTime = 0;

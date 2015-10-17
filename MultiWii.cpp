@@ -107,6 +107,9 @@ const char boxnames [] PROGMEM = // names for dynamic generation of config GUI
 #if LIDAR
 "Lidar;"
 #endif
+#if defined(GPS) && defined(BARO) && defined(MAG) 
+"CIRCLE;"
+#endif
   ;
 
 const uint8_t boxids[] PROGMEM = {// permanent IDs associated to boxes. This way, you can rely on an ID number to identify a BOX function.
@@ -171,11 +174,15 @@ const uint8_t boxids[] PROGMEM = {// permanent IDs associated to boxes. This way
 #if LIDAR
   24,
 #endif
+#if defined(GPS) && defined(BARO) && defined(MAG) 
+  25,
+#endif
   };
 
 
 uint32_t currentTime = 0;
 uint16_t previousTime = 0;
+uint32_t circleDeadline = 0;
 uint16_t cycleTime = 0;     // this is the number in micro second to achieve a full loop, it can differ a little and is taken into account in the PID loop
 uint16_t calibratingA = 0;  // the calibration is done in the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 uint16_t calibratingB = 0;  // baro calibration = get new ground pressure value
@@ -1126,8 +1133,8 @@ void loop () {
 		  if (f.SONAR_MODE == 0) {
 			  f.SONAR_MODE = 1;
 			  AltHold = sonarAlt;
-                          //initSonarPID();
-                          setSonarHold(AltHold);
+                          
+        setSonarHold(AltHold);
 
 #if defined(ALT_HOLD_THROTTLE_MIDPOINT)
 			  initialThrottleHold = ALT_HOLD_THROTTLE_MIDPOINT;
@@ -1145,7 +1152,21 @@ void loop () {
                   stopSonarPID();
 	  }
 #endif
-
+    //This mode is for aerial photography. It holds altitude and slowly rotates (yaw) the drone 
+    //Not working fully yet. We do not make any use of CIRCLE_RADIUS yet. By now we hold position 
+    //and just yaw the drone. This is the beahvior we get by setting CIRCLE_RADIUS to 0;
+    if (rcOptions[BOXCIRCLE]) {
+      if (f.CIRCLE_MODE == 0 && f.MAG_MODE && (f.SONAR_MODE || f.LIDAR_MODE || f.BARO_MODE) && (f.OPTFLOW_MODE || (f.GPS_mode = GPS_MODE_HOLD)) ) {
+        //Circle requires that we do hold orientation (Magmode) and altitude first regardless of the sensor.
+        //A second requirements is pos hold either by GPS or optflow. 
+        //ToDO: automatically switch on the modes once CIRCLE is selected
+        f.CIRCLE_MODE = 1;  
+        circleDeadline = currentTime;      
+      }
+      else {
+        f.CIRCLE_MODE = 0;
+      }
+    }
 #if LIDAR
 	  if (rcOptions[BOXLIDAR]) {
 		  if (f.LIDAR_MODE == 0) {
@@ -1415,6 +1436,7 @@ void loop () {
       f.SONAR_MODE = 0;
       f.LIDAR_MODE = 0;
       f.OPTFLOW_MODE = 0;
+      f.CIRCLE_MODE = 0;
       GPS_mode = GPS_MODE_NONE;
       }
     }
@@ -1437,6 +1459,20 @@ void loop () {
   #endif
 
   if (abs(rcCommand[YAW]) <70 && f.MAG_MODE) {
+    if (f.CIRCLE_MODE) {
+      //Change magHold based on the CIRCLE_RATE parameter
+      //CIRCLE_RATE defines the rotational speed in degrees per second
+      if (currentTime > circleDeadline) {
+        circleDeadline += 1000000;  //wait 1sec
+        magHold += CIRCLE_RATE;
+        if (magHold > 360) {
+          magHold = magHold-360;
+        }
+        if (magHold < 0) {
+          magHold = 360+magHold;
+        }
+      }
+    }
     int16_t dif = att.heading - magHold;
     if (dif <= - 180) dif += 360;
     if (dif >= + 180) dif -= 360;

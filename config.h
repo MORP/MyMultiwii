@@ -196,8 +196,8 @@
       
       //#define i2cLidar  //this section might take the code by guru_florida, once it works
       //#define externLidar //Uncomment if you use a separate controller (via i2c) for getting lidar values
-      #define genericLidar //Uncomment if Lidar range valueas are taken by PWM measuremets
-      #define CONTINUOUS_LIDAR //Comment if you do NOT want continuous measurement
+      //#define genericLidar //Uncomment if Lidar range valueas are taken by PWM measuremets
+      //#define CONTINUOUS_LIDAR //Comment if you do NOT want continuous measurement
       #define LIDAR_LPF_FACTOR 0.9f             // do not oversmooth in order to avoid a bumpy althold; 0.5 = a new value makes 50% of the smoothed value
       //#define LIDAR_TILT_CORRECTION 
       #define LIDAR_OFFSET 30
@@ -214,12 +214,12 @@
       //#define SRF08
       //#define SRF10
       //#define SRF23
-      //#define MB1232
+      #define MB1232
       #define SONAR_OFFSET 5
       #define SONAR_TILT_CORRECTION
       // SONAR!! http://www.multiwii.com/forum/viewtopic.php?f=7&t=1033&start=170#p36603
 
-      #define SONAR_MAX_HOLD 600					//cm, kind of error delimiter, for now to avoid rocket climbing, only usefull if no baro
+      #define SONAR_MAX_HOLD 400					//cm, kind of error delimiter, for now to avoid rocket climbing, only usefull if no baro
       //if using baro + sonar       
       #define SONAR_BARO_FUSION_LC 350			//cm, baro/sonar readings fusion, low cut, below = full sonar
       #define SONAR_BARO_FUSION_HC SONAR_MAX_HOLD       //cm, baro/sonar readings fusion, high cut, above = full baro
@@ -421,11 +421,11 @@ At this moment you can use this function only with WinGUI 2.3 release. MultiWiiC
       //#define SERIAL_SUM_PPM         ROLL,PITCH,YAW,THROTTLE,AUX1,AUX2,AUX3,AUX4,8,9,10,11 //For Multiplex
       //#define SERIAL_SUM_PPM         PITCH,ROLL,THROTTLE,YAW,AUX1,AUX2,AUX3,AUX4,8,9,10,11 //For some Hitec/Sanwa/Others
       //#define SERIAL_SUM_PPM         ROLL,AUX3,THROTTLE,YAW,AUX1,AUX2,PITCH,AUX4,8,9,10,11 //For Homemade PPM Converter
-        #define SERIAL_SUM_PPM         ROLL,PITCH,THROTTLE,YAW,AUX1,AUX2,AUX3,AUX4,8,9,10,11 //For Orange CPPM
+      //#define SERIAL_SUM_PPM         ROLL,PITCH,THROTTLE,YAW,AUX1,AUX2,AUX3,AUX4,8,9,10,11 //For Orange CPPM
 
 
       // Uncommenting following line allow to connect PPM_SUM receiver to standard THROTTLE PIN on MEGA boards (eg. A8 in CRIUS AIO)
-      #define PPM_ON_THROTTLE
+      //#define PPM_ON_THROTTLE
 
     /**********************    Spektrum Satellite Reciver    *******************************/
       /* The following lines apply only for Spektrum Satellite Receiver
@@ -433,7 +433,7 @@ At this moment you can use this function only with WinGUI 2.3 release. MultiWiiC
          For MEGA boards, attach sat grey wire to RX1, pin 19. Sat black wire to ground. Sat orange wire to Mega board's 3.3V (or any other 3V to 3.3V source).
          For PROMINI, attach sat grey to RX0.  Attach sat black to ground. */
       //#define SPEKTRUM 1024
-      //#define SPEKTRUM 2048
+      #define SPEKTRUM 2048
       //#define RX_SERIAL_PORT 1    // Forced to 0 on Pro Mini and single serial boards; Set to your choice of 0, 1, or 2 on any Mega based board (defaults to 1 on Mega).
       //**************************
       // Defines that allow a "Bind" of a Spektrum or Compatible Remote Receiver (aka Satellite) via Configuration GUI.
@@ -832,6 +832,11 @@ Also note, that maqgnetic declination changes with time, so recheck your value e
 
     //#define ONLY_ALLOW_ARM_WITH_GPS_3DFIX      // Only allow FC arming if GPS has a 3D fix.
 
+
+//Additional Settings regarding CIRCLE Mode (based on ARDUCopter)
+#define CIRCLE_RADIUS 0 //in cm;  zero will cause the copter to simply stay in place and slowly rotate (useful for panorama shots).
+#define CIRCLE_RATE 2 // in deg/second; positive value: CW rotation; negative value: CCW rotation
+
   /**************************************************************************************/
   /***********************        LCD/OLED - display settings       *********************/
   /**************************************************************************************/
@@ -996,7 +1001,7 @@ Also note, that maqgnetic declination changes with time, so recheck your value e
        +/-50 uncommend and change the value below if you want to change it. */
     #define ALT_HOLD_THROTTLE_NEUTRAL_ZONE    100 //50
     //#define ALT_HOLD_THROTTLE_MIDPOINT        1500  // in us    - if uncommented, this value is used in ALT_HOLD for throttle stick middle point instead of initialThrottleHold parameter.
-
+                                                      // replace with the real mid value and enable throttle ignore to avoid alt change problems, alternative neutral zone to 1000
 
     /* uncomment to disable the altitude hold feature.
      * This is useful if all of the following apply

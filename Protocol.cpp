@@ -452,14 +452,18 @@ void evaluateCommand(uint8_t c) {
         if(rcOptions[BOXOSD]) tmp |= 1<<BOXOSD;
       #endif
       #if SONAR
-		if (f.SONAR_MODE) tmp |= 1 << BOXSONAR;
+		    if (f.SONAR_MODE) tmp |= 1 << BOXSONAR;
       #endif
       #if OPTFLOW
-                if (f.OPTFLOW_MODE) tmp |= 1 << BOXOPTFLOW;
+        if (f.OPTFLOW_MODE) tmp |= 1 << BOXOPTFLOW;
       #endif
       #if LIDAR
-                if (f.LIDAR_MODE) tmp |= 1 << BOXLIDAR;
+        if (f.LIDAR_MODE) tmp |= 1 << BOXLIDAR;
       #endif
+      #if defined(GPS) && defined(BARO) && defined(MAG) 
+        if (f.CIRCLE_MODE) tmp|= 1 <<BOXCIRCLE;
+      #endif
+  
       if(f.ARMED) tmp |= 1<<BOXARM;
       st.flag             = tmp;
       st.set              = global_conf.currentSet;
