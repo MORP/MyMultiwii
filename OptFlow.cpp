@@ -85,7 +85,7 @@ void	Optflow_update() {
 			prevHeading = att.heading;
 			optflow_start();
 			optflowUse = 1;
-                        sum_dx = sum_dy = 0;
+      sum_dx = sum_dy = 0;
 			return;
 		}
 		
@@ -119,7 +119,7 @@ void	Optflow_update() {
 			}					
 		}	else {
 			  optflow_angle[ROLL] = 0;	
-                          optflow_angle[PITCH] = 0;
+        optflow_angle[PITCH] = 0;
 		}
 
 		// Apply I-term	unconditionally
@@ -134,7 +134,10 @@ void	Optflow_update() {
 		#endif
 	}	else if(optflowUse)	{	// switch mode off
 		  optflow_angle[ROLL] = 0;
-        	  optflow_angle[PITCH] = 0;
+      optflow_angle[PITCH] = 0;
+      optflowErrorI[0]  = 0;
+      optflowErrorI[1]  = 0;
+      prevHeading = 0;
 		  optflowUse = 0;
 	}
 }
@@ -193,7 +196,7 @@ void	optflow_get_vel()	{
 	}
 	
 	#ifdef OF_DEBUG
-                debug[0] = EstHVel[axis];
+    debug[0] = EstHVel[axis];
 		debug[1] = optflow_pos[0];
 		debug[2] = avgSqual.res;
 		debug[3] = vel_of[0]*10;
