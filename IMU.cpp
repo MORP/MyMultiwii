@@ -9,7 +9,7 @@
 
 
 //Specify the links and initial tuning parameters for Alternative PID 
-float errSum, lastErr, Output;
+float errSum, lastErr, Output, altVel;
 int tempAlt = 0;
 unsigned long lastTime = 0;
 
@@ -347,6 +347,7 @@ uint8_t getEstimatedAltitude(){
 	uint16_t dTime;
   uint8_t aggressiveness = 1;
   uint8_t readingError = 0;
+  float iValue = 0;
 
 	dTime = currentT - previousT;
 	if (dTime < UPDATE_INTERVAL) return 0;
@@ -376,52 +377,52 @@ uint8_t getEstimatedAltitude(){
 	}
 #endif
 
+/*
+ * Decide on which alt is displayed when not in one of the two alt hold modes
+ */
+#if defined(BARO)
+  alt.EstAlt = (alt.EstAlt * 6 + 2 * BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
+#elif defined(SONAR)
+  alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC);
+#elif defined(LIDAR)
+  alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);
+#endif
 
-#if BARO && !SONAR && !LIDAR
-	alt.EstAlt = (alt.EstAlt * 6 + 2 * BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
-#elif SONAR && !BARO && !LIDAR
-	alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC);
-#elif LIDAR && !BARO && !SONAR
-        alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);
-#elif LIDAR && SONAR && !BARO
-        alt.EstAlt = lidarAlt;
-#elif (SONAR || LIDAR) && BARO
-        if (!f.BARO_MODE && !f.SONAR_MODE && !f.LIDAR_MODE) {
-                 alt.EstAlt = (alt.EstAlt * 6 + 2* BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
-        }
+/*
+ * Decide which alt to use once alt hold (one of two modes) is engaged
+ */
+if (f.BARO_MODE && !f.SONAR_MODE && !f.LIDAR_MODE){
+   alt.EstAlt = (alt.EstAlt * 6 + 2* BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
+}
        
-        else if (f.BARO_MODE && !f.SONAR_MODE && !f.LIDAR_MODE){
-                 alt.EstAlt = (alt.EstAlt * 6 + 2* BaroAlt) >> 3; // additional LPF to reduce baro noise (faster by 30 µs)
-        }
-        
-        else if (f.SONAR_MODE && !f.BARO_MODE && !f.LIDAR_MODE) {
-                alt.EstAlt = sonarAlt;
-                //alt.EstAlt = (alt.EstAlt * 6 + sonarAlt * 2) >> 3;
-      	}
-        else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
-                alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);  
-                //alt.EstAlt = lidarAlt;
-        }
-        else if (f.LIDAR_MODE && f.SONAR_MODE && !f.BARO_MODE){
-          //use sonar values to check lidar or baro readings for correctness
-          readingError = abs(lidarAlt-sonarAlt);
-          if ((readingError > 5) && (sonarAlt <= SONAR_MAX_HOLD)) //if there is a difference and we are below sonar max range
-          {
-            alt.EstAlt = min(sonarAlt,lidarAlt); //just for safety we are using the lower reading
-          }
-          else
-          {
-            //Both readings are in the same range. Thus, we depend on the Lidar since it
-            //the Lidar has a higher range (~40m)
-            alt.EstAlt = lidarAlt;
-          }
-        }
-        else if  ((f.SONAR_MODE || f.LIDAR_MODE) && f.BARO_MODE) {
-            //This mode will allow for holding absolute altitude and verifies readings by using
-            //either Sonar or Lidar.
-            //Alternatively we can do a sensor fusion. However, this would mean that we mix
-            //relative and absolute altitude hold.
-        }   
+else if (f.SONAR_MODE && !f.BARO_MODE && !f.LIDAR_MODE) {
+    alt.EstAlt = sonarAlt;
+}
+
+else if (f.LIDAR_MODE && !f.BARO_MODE && !f.SONAR_MODE) {//no Sonar if LIDAR is present
+    alt.EstAlt = smooth(lidarAlt, LIDAR_LPF_FACTOR, alt.EstAlt);  
+}
+
+else if (f.LIDAR_MODE && f.SONAR_MODE && !f.BARO_MODE){
+  //use sonar values to check lidar or baro readings for correctness
+  readingError = abs(lidarAlt-sonarAlt);
+  if ((readingError > 5) && (sonarAlt <= SONAR_MAX_HOLD)) //if there is a difference and we are below sonar max range
+  {
+    alt.EstAlt = min(sonarAlt,lidarAlt); //just for safety we are using the lower reading
+  }
+  else
+  {
+    //Both readings are in the same range or alt is beyond sonar range. Thus, we depend on the Lidar since it
+    //the Lidar has a higher range (~40m)
+   alt.EstAlt = lidarAlt;
+  }
+}
+else if  ((f.SONAR_MODE || f.LIDAR_MODE) && f.BARO_MODE) {
+    //This mode will allow for holding absolute altitude and verifies readings by using
+    //either Sonar or Lidar.
+    //Alternatively we can do a sensor fusion. However, this would mean that we mix
+    //relative and absolute altitude hold.
+}   
 
 //
 //          	if (sonarAlt < SONAR_BARO_FUSION_LC) {
@@ -444,11 +445,12 @@ uint8_t getEstimatedAltitude(){
 //        }
 
 	//alt.EstAlt = alt.EstAlt * SONAR_BARO_LPF_LC + sonarAlt * (1 - SONAR_BARO_LPF_LC); // SONAR
-#endif
+//#endif
 
 #if (defined(VARIOMETER) && (VARIOMETER != 2)) || !defined(SUPPRESS_BARO_ALTHOLD)
 
-        if (f.SONAR_MODE || f.LIDAR_MODE) 
+
+        if (f.SONAR_MODE || f.LIDAR_MODE) //Relative_Alt Mode
         {
           // Time difference to last call
           unsigned long now = millis();
@@ -461,9 +463,9 @@ uint8_t getEstimatedAltitude(){
           }
           else {
             tempAlt = alt.EstAlt;
-            //Use adaptive tunings. If we are more than 2m away from our target we will use more aggressive PIDs
-            if  (abs(AltHold - alt.EstAlt) > 200) {
-                aggressiveness = 2; 
+            //Use adaptive tunings. If we are more than 4m away from our target we will use more aggressive PIDs
+            if  (abs(AltHold - alt.EstAlt) > 400) {
+                aggressiveness = 1.2; 
             }
             else {
                 aggressiveness = 1;
@@ -472,34 +474,42 @@ uint8_t getEstimatedAltitude(){
                     
           //Compute all the working error variables
           int16_t error16 = constrain(AltHold - alt.EstAlt, -300, 300);
-          applyDeadband(error16, 10); //remove small P parameter to reduce noise near zero position
-
-          //Compute PID Output
+          applyDeadband(error16, 5); //remove small P parameter to reduce noise near zero position //was 10
+          
           float dErr = (error16 - lastErr) / timeChange; 
-            
+
           errSum += (error16 * timeChange);
           errSum = constrain(errSum, -1000000, 1000000); 
 
-             
-          float pValue = (conf.pid[PIDALT].P8 * error16  * aggressiveness);
-          float iValue = conf.pid[PIDALT].I8 * errSum;
+          //Compute PID Output
+              
+          float pValue = (conf.pid[PIDALT].P8 * error16  * aggressiveness);   
+
+          // V velocity, cm/sec
+           altVel += accZ * ACC_VelScale * dTime;
+          //avoid integration when setting AltHold or when the copter rises/falls
+          if (altVel < 5)
+          {
+            iValue = conf.pid[PIDALT].I8 * errSum;
+          } 
+    
           float dValue = conf.pid[PIDALT].D8 * dErr;
               
-          Output =  (pValue / 10 )+ (iValue / 100000)  + dValue;  //The test quad is ligth and powerful. Thus we divide P by 4 (better 10) to reduce the strength of reactions
+          Output =  (pValue / 100 )+ (iValue / 100000)  + (dValue / 100);  //The test quad is ligth and powerfull. Thus we divide P by 100 to reduce the strength of reactions
           Output = constrain(Output, -150, 150); //to avoid reactions that are too strong
   
           //Remember some variables for the next loop
           lastErr = error16; //pValue;
-          lastTime = now;           
+          lastTime = now;      
           //Hand over new value
           BaroPID = (int) Output;    
                       
           debug[0] = BaroPID; 
-          debug[1] = timeChange;//alt.EstAlt;
+          debug[1] = alt.EstAlt;
           debug[2] = AltHold;//lidarAlt;
           
         }
-        else {
+        else { //Absolute_Alt Mode
 	          //P
 	          int16_t error16 = constrain(AltHold - alt.EstAlt, -300, 300);
       	    applyDeadband(error16, 10); //remove small P parametr to reduce noise near zero position
@@ -541,23 +551,14 @@ void setSonarHold(int alt){
   
   if (alt < 0) //as a safety feature when performing smooth alt hold changes)
     return;
-     
-    #if defined(PIDTEST)
-     lastErr = 0;
-     lastTime = 0;
-    #endif
-    
+         
   tempAlt = alt;
   BaroPID = 0;
+  altVel = 0;
 }
 
 void stopSonarPID() {
   
-    #if defined(PIDTEST)
-     lastErr = 0;
-     lastTime = 0;
-    #endif
-    //myPID.SetMode(MANUAL);
     AltHold = 0;
     tempAlt = 0;
     BaroPID = 0;

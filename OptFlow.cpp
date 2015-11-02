@@ -16,6 +16,10 @@
 #include "MultiWii.h"
 #include "OptFlow.h"
 
+#ifdef NEOPIXEL
+#include "WS2812.h"
+#endif
+
 #define	PRODUCT_ID					0x00 //   should return 0x17 if a working adns3080 is connected
 #define	MOTION_REG					0x02
 #define	DELTA_X_REG					0x03 
@@ -33,6 +37,10 @@
 //#if	!defined(digitalWriteFast)
 //	#include "digitalWriteFast.h"
 //#endif
+
+#if defined(NEOPIXEL)
+WS2812 LED(STRIP_1);  //Initialize LED Strip
+#endif
 
 /* Exponential moving average filter (optimized for integers) with factor = 2^n */
 typedef struct avg_var16
@@ -139,6 +147,17 @@ void	Optflow_update() {
       optflowErrorI[1]  = 0;
       prevHeading = 0;
 		  optflowUse = 0;
+
+      #if defined(NEOPIXEL)
+       //Set Ring to black
+      cRGB cBlack = {    0, 0, 0     };
+
+      for (int i = 0; i < STRIP_1; i++){
+         LED.set_crgb_at(i,cBlack);
+      }
+      
+      LED.sync();
+      #endif
 	}
 }
 
@@ -236,8 +255,21 @@ void	optflow_get()	{
 
  boolean initOptflow()	{
    
-        boolean health = false;
-   
+  boolean health = false;
+
+  #if defined(NEOPIXEL)
+    LED.setOutput(PIXEL_PIN);
+    LED.setColorOrderRGB(); // RGB color order
+  
+    //Set Ring to black
+    cRGB cBlack = {0, 0, 0     };
+    
+    for (int i = 0; i < STRIP_1; i++){
+       LED.set_crgb_at(i,cBlack);
+    }
+    LED.sync();
+  #endif
+     
 	pinMode(OF_MOSI, OUTPUT);
 	pinMode(OF_MISO, INPUT);
 	pinMode(OF_SCLK, OUTPUT);
@@ -305,6 +337,15 @@ void	optflow_get()	{
 void	optflow_start()	{
 	// reset motion	buffers
 	write_register(MOTION_CLEAR_REG, 1);
+  #if defined(NEOPIXEL)
+  //Set Ring to red since we are not ready to arm yet
+  cRGB cGreen = {    0, 0, 255  };
+
+  for (int i = 0; i < STRIP_1; i++){
+       LED.set_crgb_at(i,cGreen);
+   }
+  LED.sync();
+  #endif
 }
 
 

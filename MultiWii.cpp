@@ -52,7 +52,7 @@ const char boxnames [] PROGMEM = // names for dynamic generation of config GUI
 "HORIZON;"
 #endif
 #if BARO && (!defined(SUPPRESS_BARO_ALTHOLD))
-"BARO;"
+"ABS ALT;"
 #endif
 #ifdef VARIOMETER
 "VARIO;"
@@ -98,15 +98,16 @@ const char boxnames [] PROGMEM = // names for dynamic generation of config GUI
 "MISSION;"
 "LAND;"
 #endif
-#if SONAR
-"SONAR;"
+#if defined(SONAR) || defined(LIDAR)
+"REL ALT;"
+"START;"
 #endif 
 #if OPTFLOW
-"OPTFLOW;"
+"POS HOLD;"
 #endif
-#if LIDAR
-"Lidar;"
-#endif
+//#if LIDAR
+//"Lidar;"
+//#endif
 #if defined(GPS) && defined(BARO) && defined(MAG) 
 "CIRCLE;"
 #endif
@@ -165,15 +166,16 @@ const uint8_t boxids[] PROGMEM = {// permanent IDs associated to boxes. This way
   20, //"MISSION;"
   21, //"LAND;"
 #endif
-#if SONAR
-  22, //"SONAR;"
+#if defined(SONAR) || defined(LIDAR)
+  22, //"REL ALT;"
+  23, //"START;"
 #endif
 #if OPTFLOW
-  23, //"OPTFLOW;"
+  24, //"OPTFLOW;"
 #endif
-#if LIDAR
-  24,
-#endif
+//#if LIDAR
+//  24,
+//#endif
 #if defined(GPS) && defined(BARO) && defined(MAG) 
   25,
 #endif
@@ -1129,11 +1131,16 @@ void loop () {
     #endif
 
 #if SONAR
-	  if (rcOptions[BOXSONAR]) {
+	  if (rcOptions[BOXRELALT]) {
+      #if defined(SONAR)
 		  if (f.SONAR_MODE == 0) {
 			  f.SONAR_MODE = 1;
 			  AltHold = sonarAlt;
-                          
+      #elif defined(LIDAR)
+      if (f.LIDAR_MODE == 0) {
+        f.LIDAR_MODE = 1;
+        AltHold = lidarAlt;
+      #endif                          
         setSonarHold(AltHold);
 
 #if defined(ALT_HOLD_THROTTLE_MIDPOINT)
@@ -1148,8 +1155,12 @@ void loop () {
 		  }
 	  }
 	  else {
-		  f.SONAR_MODE = 0;
-                  stopSonarPID();
+      #if defined(SONAR)
+  		  f.SONAR_MODE = 0;
+      #elif defined(LIDAR)
+        f.LIDAR_MODE = 0;
+      #endif
+      stopSonarPID();
 	  }
 #endif
     //This mode is for aerial photography. It holds altitude and slowly rotates (yaw) the drone 
@@ -1167,30 +1178,31 @@ void loop () {
         f.CIRCLE_MODE = 0;
       }
     }
-#if LIDAR
-	  if (rcOptions[BOXLIDAR]) {
-		  if (f.LIDAR_MODE == 0) {
-			  f.LIDAR_MODE = 1;
-			  AltHold = lidarAlt;
-                          //initSonarPID();
-                          setSonarHold(AltHold);
 
-#if defined(ALT_HOLD_THROTTLE_MIDPOINT)
-			  initialThrottleHold = ALT_HOLD_THROTTLE_MIDPOINT;
-#else
-			  initialThrottleHold = rcCommand[THROTTLE];
-#endif
+	  if (rcOptions[BOXSTART]) {
+		  if (f.START_MODE == 0) {
+      
+			  if (f.ARMED && alt.EstAlt < 5) //only if motors are running and we are at the ground level
+			  {
+			    f.START_MODE = 1;
+			  
+  			  AltHold = 100;  //Target Height for Auto Start
+		  	  initialThrottleHold = START_THROTTLE;
+	  		  errorAltitudeI = 0;
+			    BaroPID = 0;
+			    f.THROTTLE_IGNORED = 1;
 
-			  errorAltitudeI = 0;
-			  BaroPID = 0;
-			  f.THROTTLE_IGNORED = 0;
+          rcOptions[BOXRELALT] = 1;
+			  }
 		  }
 	  }
 	  else {
-		  f.LIDAR_MODE = 0;
-                  stopSonarPID();
+		  f.START_MODE = 0;
+      f.THROTTLE_IGNORED = 0;
+      rcOptions[BOXRELALT] = 0;
+//                  stopSonarPID();
 	  }
-#endif
+//#endif
 
     #if BARO
       #if (!defined(SUPPRESS_BARO_ALTHOLD))
@@ -1342,7 +1354,7 @@ void loop () {
     }
     #endif
     #if defined(OPTFLOW)
-      if (rcOptions[BOXOPTFLOW]) {
+      if (rcOptions[BOXPOSHOLD]) {
       if (!f.OPTFLOW_MODE) {
         f.OPTFLOW_MODE = 1;
       }
@@ -1437,6 +1449,7 @@ void loop () {
       f.LIDAR_MODE = 0;
       f.OPTFLOW_MODE = 0;
       f.CIRCLE_MODE = 0;
+      f.START_MODE = 0;
       GPS_mode = GPS_MODE_NONE;
       }
     }

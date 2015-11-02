@@ -26,7 +26,7 @@ enum pid {
   PIDNAVR,
   PIDLEVEL,
   PIDMAG,
-  PIDVEL,     // not used currently
+  PIDVEL,     // New: used for Optflow sensor
   PIDITEMS
 };
 
@@ -83,15 +83,16 @@ enum box {
     BOXGPSNAV,
     BOXLAND,
   #endif
-  #if SONAR
-	BOXSONAR,
+  #if defined(SONAR) || defined(LIDAR)
+	BOXRELALT,
+  BOXSTART,
   #endif
   #if OPTFLOW
-	BOXOPTFLOW,
+	BOXPOSHOLD,
   #endif
-  #if LIDAR
-        BOXLIDAR,
-  #endif
+//  #if LIDAR
+//        BOXLIDAR,
+//  #endif
   #if defined(GPS) && defined(BARO) && defined(MAG) 
     BOXCIRCLE,
   #endif
@@ -162,6 +163,7 @@ typedef struct {
   uint8_t SONAR_MODE : 1;
   uint8_t OPTFLOW_MODE : 1;
   uint8_t CIRCLE_MODE : 1;
+  uint8_t START_MODE :1;
 } flags_struct_t;
 
 typedef struct {

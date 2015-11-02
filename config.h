@@ -251,6 +251,13 @@
          #define OF_LPF_FACTOR 5
          /* Rotate I-term with heading rotation. It will compensate wind */
          #define OF_ROTATE_I
+         //NeoPixel based support light
+         #define NEOPIXEL  //uncomment if available
+         // Pin used to connect to NeoPixel DataLine
+         #define PIXEL_PIN 30 //Use any free pin (Pin 31 is normally used for the LED flasher)
+         //Sizes of pixel strip
+         #define STRIP_1 12 //Pixel-Ring (Standard Values: 8,12,16)
+
 
       /* ADC accelerometer */ // for 5DOF from sparkfun, uses analog PIN A1/A2/A3
       //#define ADCACC
@@ -697,7 +704,7 @@ At this moment you can use this function only with WinGUI 2.3 release. MultiWiiC
   /*************************    INFLIGHT ACC Calibration    *****************************/
     /* This will activate the ACC-Inflight calibration if unchecked */
     
-    #define INFLIGHT_ACC_CALIBRATION
+    //#define INFLIGHT_ACC_CALIBRATION
 
   /*******************************    OSD Switch    *************************************/
     // This adds a box that can be interpreted by OSD in activation status (to switch on/off the overlay for instance)
@@ -999,9 +1006,10 @@ Also note, that maqgnetic declination changes with time, so recheck your value e
 
     /* defines the neutral zone of throttle stick during altitude hold, default setting is
        +/-50 uncommend and change the value below if you want to change it. */
-    #define ALT_HOLD_THROTTLE_NEUTRAL_ZONE    100 //50
+    #define ALT_HOLD_THROTTLE_NEUTRAL_ZONE    100 //500
     //#define ALT_HOLD_THROTTLE_MIDPOINT        1500  // in us    - if uncommented, this value is used in ALT_HOLD for throttle stick middle point instead of initialThrottleHold parameter.
                                                       // replace with the real mid value and enable throttle ignore to avoid alt change problems, alternative neutral zone to 1000
+    #define START_THROTTLE 1450;  //use your throttle midpoint
 
     /* uncomment to disable the altitude hold feature.
      * This is useful if all of the following apply
