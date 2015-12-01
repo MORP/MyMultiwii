@@ -286,7 +286,9 @@ void getEstimatedAttitude(){
   accZ -= accZoffset>>3;
 }
 
-#define UPDATE_INTERVAL 25000    // 40hz update rate (20hz LPF on acc)
+#define UPDATE_INTERVAL     25000    // 40hz update rate (20hz LPF on acc)
+#define ALT_UPDATE_INTERVAL 5000 //10000 works
+
 #define BARO_TAB_SIZE   21
 
 #define ACC_Z_DEADBAND (ACC_1G>>5) // was 40 instead of 32 now
@@ -350,7 +352,7 @@ uint8_t getEstimatedAltitude(){
   float iValue = 0;
 
 	dTime = currentT - previousT;
-	if (dTime < UPDATE_INTERVAL) return 0;
+	if (dTime < ALT_UPDATE_INTERVAL) return 0;
 	previousT = currentT;
 
 	if (calibratingB > 0) {
@@ -490,14 +492,21 @@ else if  ((f.SONAR_MODE || f.LIDAR_MODE) && f.BARO_MODE) {
           //avoid integration when setting AltHold or when the copter rises/falls
           if (altVel < 5)
           {
+            errSum = constrain(errSum, -20, 20); //
             iValue = conf.pid[PIDALT].I8 * errSum;
           } 
     
           float dValue = conf.pid[PIDALT].D8 * dErr;
               
-          Output =  (pValue / 100 )+ (iValue / 100000)  + (dValue / 100);  //The test quad is ligth and powerfull. Thus we divide P by 100 to reduce the strength of reactions
+          Output =  (pValue / 100 )+ (iValue / 100000)  - (dValue / 100);  //The test quad is ligth and powerfull. Thus we divide P by 100 to reduce the strength of reactions
           Output = constrain(Output, -150, 150); //to avoid reactions that are too strong
-  
+
+          if (error16 < 0)
+          {
+            //we want to lower the copters' altitude. This requires more effort since we do only have upward thrust
+            //Thus we increase our PID value to 105%
+            Output = Output * 1.01;
+          }
           //Remember some variables for the next loop
           lastErr = error16; //pValue;
           lastTime = now;      

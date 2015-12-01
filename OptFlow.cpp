@@ -279,8 +279,8 @@ void	optflow_get()	{
         //This is not the preferred solution but a necessary workaround 
         if (conf.pid[PIDVEL].P8 == 0)
           conf.pid[PIDVEL].P8 = 22;
-        if (conf.pid[PIDVEL].D8 == 0)
-          conf.pid[PIDVEL].D8 = 20;
+        if (conf.pid[PIDVEL].I8 == 0)
+          conf.pid[PIDVEL].I8 = 20;
     
         
 	// reset device
@@ -337,6 +337,9 @@ void	optflow_get()	{
 void	optflow_start()	{
 	// reset motion	buffers
 	write_register(MOTION_CLEAR_REG, 1);
+  optflow_angle[ROLL] = 0;
+  optflow_angle[PITCH] = 0;
+   
   #if defined(NEOPIXEL)
   //Set Ring to red since we are not ready to arm yet
   cRGB cGreen = {    0, 0, 255  };

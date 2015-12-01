@@ -1009,7 +1009,7 @@ Also note, that maqgnetic declination changes with time, so recheck your value e
     #define ALT_HOLD_THROTTLE_NEUTRAL_ZONE    100 //500
     //#define ALT_HOLD_THROTTLE_MIDPOINT        1500  // in us    - if uncommented, this value is used in ALT_HOLD for throttle stick middle point instead of initialThrottleHold parameter.
                                                       // replace with the real mid value and enable throttle ignore to avoid alt change problems, alternative neutral zone to 1000
-    #define START_THROTTLE 1450;  //use your throttle midpoint
+    #define START_THROTTLE rcCommand[THROTTLE]-10;  //use your throttle midpoint
 
     /* uncomment to disable the altitude hold feature.
      * This is useful if all of the following apply

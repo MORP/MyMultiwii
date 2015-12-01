@@ -1423,7 +1423,7 @@ void Gyro_getADC() {
 #endif
 
 #if !defined(SRF08_RANGE_SLEEP) 
-  #define SRF08_RANGE_SLEEP     250 //5000       // sleep this long before starting another Ping
+  #define SRF08_RANGE_SLEEP     100 // was 200; 5000 orig       // get a new reading every 100 ms
 #endif
 
 #if !defined(SRF08_SENSOR_FIRST) 

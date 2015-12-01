@@ -1580,7 +1580,6 @@ void loop () {
       errorAngle = constrain(rc + GPS_angle[axis],-500,+500) - att.angle[axis] + conf.angleTrim[axis]; //16 bits is ok here
       #ifdef OPTFLOW
        if (f.OPTFLOW_MODE){
-         //errorAngle = constrain(rc + GPS_angle[axis] - optflow_angle[axis],-500,+500) - att.angle[axis] + conf.angleTrim[axis]; //16 bits is ok here
          errorAngle-= optflow_angle[axis];
         
          #ifdef OF_DEBUG 
@@ -1588,8 +1587,7 @@ void loop () {
            debug[1] = optflow_angle[PITCH]*10;
          #endif 
        }
-      	 //errorAngle = constrain(rc + GPS_angle[axis] - optflow_angle[axis], -400, +400) - att.angle[axis] + conf.angleTrim[axis]; //16 bits is ok here
-      //debug[0] = errorAngle;
+      
       #endif	
       errorAngleI[axis]  = constrain(errorAngleI[axis]+errorAngle,-10000,+10000);                                                // WindUp     //16 bits is ok here
 
