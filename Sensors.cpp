@@ -1419,11 +1419,11 @@ void Gyro_getADC() {
 #endif
 
 #if !defined(SRF08_RANGE_WAIT) 
-  #define SRF08_RANGE_WAIT      70000      // delay between Ping and Range Read commands (65ms is safe in any case)
+  #define SRF08_RANGE_WAIT      66000      // delay between Ping and Range Read commands (65ms is safe in any case)
 #endif
 
 #if !defined(SRF08_RANGE_SLEEP) 
-  #define SRF08_RANGE_SLEEP     100 // was 200; 5000 orig       // get a new reading every 100 ms
+  #define SRF08_RANGE_SLEEP     50 // was 200; 5000 orig       // get a new reading every 50 ms
 #endif
 
 #if !defined(SRF08_SENSOR_FIRST) 
