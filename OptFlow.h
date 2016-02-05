@@ -9,6 +9,7 @@ extern int16_t optflow_angle[2];// = { 0, 0 }; //was static
 boolean	initOptflow();
 void	Optflow_update();
 void	optflow_start();
+void optflow_end();
 void    optflow_read();
 void	optflow_get_vel();
 void	optflow_get();

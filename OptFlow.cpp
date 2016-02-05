@@ -141,8 +141,7 @@ void	Optflow_update() {
 			debug[3] = optflow_angle[PITCH]*10;
 		#endif
 	}	else if(optflowUse)	{	// switch mode off
-		  optflow_angle[ROLL] = 0;
-      optflow_angle[PITCH] = 0;
+      optflow_end();
       optflowErrorI[0]  = 0;
       optflowErrorI[1]  = 0;
       prevHeading = 0;
@@ -274,6 +273,9 @@ void	optflow_get()	{
 	pinMode(OF_MISO, INPUT);
 	pinMode(OF_SCLK, OUTPUT);
 	pinMode(OF_NCS, OUTPUT);
+  #if(OF_RESET>0)
+    pinMode(OF_RESET, OUTPUT);
+  #endif
 
         //Since EZ-GUI does not really support to set VEL PID's here is a fallback
         //This is not the preferred solution but a necessary workaround 
@@ -285,7 +287,6 @@ void	optflow_get()	{
         
 	// reset device
 	#if(OF_RESET>0)
-		pinModeFast(OF_RESET,	OUTPUT);
 		digitalWrite(OF_RESET, HIGH);
 		delayMicroseconds(10);
 		digitalWrite(OF_RESET, LOW);
@@ -335,6 +336,7 @@ void	optflow_get()	{
 
 /* Start motion	capture	*/
 void	optflow_start()	{
+  
 	// reset motion	buffers
 	write_register(MOTION_CLEAR_REG, 1);
   optflow_angle[ROLL] = 0;
@@ -351,6 +353,24 @@ void	optflow_start()	{
   #endif
 }
 
+void optflow_end() {
+    // reset device
+  #if(OF_RESET>0)
+    digitalWrite(OF_RESET, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(OF_RESET, LOW);
+    delayMicroseconds(500);
+  #else
+    write_register(MOTION_CLEAR_REG, 1);
+  #endif
+
+  sum_dx = 0;
+  sum_dy = 0;
+  EstHVel[0] = 0;
+  EstHVel[1] = 0;
+  optflow_angle[ROLL] = 0;
+  optflow_angle[PITCH] = 0;
+}
 
 /* Read	sensor values.	*/
 void optflow_read() {
