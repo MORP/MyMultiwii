@@ -215,8 +215,11 @@
       //#define SRF10
       //#define SRF23
       #define MB1232
-      #define SONAR_OFFSET 5
+      #define SONAR_OFFSET 15
       #define SONAR_TILT_CORRECTION
+      #define SONAR_LPF_FACTOR 0.9f             // do not oversmooth in order to avoid a bumpy althold; 0.5 = a new value makes 50% of the smoothed value
+
+      
       // SONAR!! http://www.multiwii.com/forum/viewtopic.php?f=7&t=1033&start=170#p36603
 
       #define SONAR_MAX_HOLD 400					//cm, kind of error delimiter, for now to avoid rocket climbing, only usefull if no baro
@@ -226,6 +229,7 @@
       #define SONAR_BARO_FUSION_RATIO 0.0			//0.0-1.0,  baro/sonar readings fusion, amount of each sensor value, 0 = proportionnel between LC and HC
       #define SONAR_BARO_LPF_LC 0.9f 
       #define SONAR_BARO_LPF_HC 0.9f
+
 
       /***** alexmos: Optical Flow sensor for position hold ********/
       /* Activated by 'OPTFLOW' checkbox (ANGLE mode must be enabled)
